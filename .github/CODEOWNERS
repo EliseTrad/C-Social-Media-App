@@ -1,0 +1,11 @@
+# File ownership by module
+
+/src/CommandProcessor.* @EliseTrad
+/src/main.cpp @EliseTrad
+
+/src/RelationshipManager.* @YasmineMakhlouf
+
+/src/AuthManager.* @issaanita
+
+/src/User.* @bouomaromar
+/src/UserManager.* @bouomaromar
