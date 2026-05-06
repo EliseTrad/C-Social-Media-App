@@ -11,8 +11,29 @@
  * and efficient average-case operations using hash sets stored in `User`.
  */
 
+/*
+ * Function: RelationshipManager
+ * -----------------------------
+ * Constructs a relationship manager bound to a shared UserManager.
+ *
+ * Parameters:
+ *   userManager - reference used for user existence and lookup operations.
+ */
 RelationshipManager::RelationshipManager(UserManager &userManager) : userManager(userManager) {}
 
+/*
+ * Function: follow
+ * ----------------
+ * Creates a directed edge follower -> followee.
+ *
+ * Validation:
+ * - Prevent self-follow.
+ * - Require both users to exist.
+ * - Prevent duplicate follows.
+ *
+ * Returns:
+ *   true on success, false otherwise.
+ */
 bool RelationshipManager::follow(const std::string &follower, const std::string &followee)
 {
 	// Prevent self-follow
@@ -41,6 +62,18 @@ bool RelationshipManager::follow(const std::string &follower, const std::string 
 	return true;
 }
 
+/*
+ * Function: unfollow
+ * ------------------
+ * Removes a directed edge follower -> followee.
+ *
+ * Validation:
+ * - Require both users to exist.
+ * - Require the follow relationship to be present.
+ *
+ * Returns:
+ *   true on success, false otherwise.
+ */
 bool RelationshipManager::unfollow(const std::string &follower, const std::string &followee)
 {
 	User *followerUser = userManager.findUser(follower);
@@ -61,6 +94,14 @@ bool RelationshipManager::unfollow(const std::string &follower, const std::strin
 	return true;
 }
 
+/*
+ * Function: isFollowing
+ * ---------------------
+ * Checks whether follower currently follows followee.
+ *
+ * Returns:
+ *   true if the directed relationship exists, false otherwise.
+ */
 bool RelationshipManager::isFollowing(const std::string &follower, const std::string &followee) const
 {
 	const User *followerUser = userManager.findUser(follower);
@@ -72,6 +113,14 @@ bool RelationshipManager::isFollowing(const std::string &follower, const std::st
 	return followerUser->following.count(followee) > 0;
 }
 
+/*
+ * Function: getFollowers
+ * ----------------------
+ * Returns all users that follow the given username.
+ *
+ * Returns:
+ *   Vector of follower usernames, or empty if user does not exist.
+ */
 std::vector<std::string> RelationshipManager::getFollowers(const std::string &username) const
 {
 	const User *user = userManager.findUser(username);
@@ -91,6 +140,14 @@ std::vector<std::string> RelationshipManager::getFollowers(const std::string &us
 	return followers;
 }
 
+/*
+ * Function: getFollowing
+ * ----------------------
+ * Returns all users followed by the given username.
+ *
+ * Returns:
+ *   Vector of followed usernames, or empty if user does not exist.
+ */
 std::vector<std::string> RelationshipManager::getFollowing(const std::string &username) const
 {
 	const User *user = userManager.findUser(username);
@@ -110,6 +167,18 @@ std::vector<std::string> RelationshipManager::getFollowing(const std::string &us
 	return following;
 }
 
+/*
+ * Function: getMutualConnections
+ * ------------------------------
+ * Computes intersection of two users' following sets.
+ *
+ * Strategy:
+ * - Iterate over the smaller set for efficiency.
+ * - Use hash membership checks on the larger set.
+ *
+ * Returns:
+ *   Vector of mutual connections, or empty if either user is missing.
+ */
 std::vector<std::string> RelationshipManager::getMutualConnections(const std::string &userA, const std::string &userB) const
 {
 	const User *firstUser = userManager.findUser(userA);
