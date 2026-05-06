@@ -30,11 +30,16 @@ AuthManager::AuthManager(UserManager &userManager)
  */
 bool AuthManager::signup(const std::string &username, const std::string &password)
 {
-    if (!userManager.signup(username, hashPassword(password))) {
-        std::cout << "User Already Exists" << "\n";
+
+    if (username.empty() || password.empty()) {
+        std::cout << "Error: username and password cannot be empty" << "\n";
         return false;
     }
-    std::cout << "Signup Successful" << "\n";
+    if (!userManager.signup(username, hashPassword(password))) {
+        std::cout << "Error: user already exists" << "\n";
+        return false;
+    }
+    std::cout << "Success: signup successful" << "\n";
     return true;
 }
 
@@ -53,25 +58,31 @@ bool AuthManager::signup(const std::string &username, const std::string &passwor
  */
 bool AuthManager::login(const std::string &username, const std::string &password)
 {
+
+    if (username.empty() || password.empty()) {
+        std::cout << "Error: username and password cannot be empty" << "\n";
+        return false;
+    }
+    
     const User* user = userManager.findUser(username);
 
     if (!user) {
-        std::cout << "User Does Not Exist" << "\n";
+        std::cout << "Error: user does not exist" << "\n";
         return false;
     }
 
     if (user->passwordHash != hashPassword(password)) {
-        std::cout << "Incorrect Password" << "\n";
+        std::cout << "Error: incorrect password" << "\n";
         return false;
     }
 
     if (!sessionStack.empty() && sessionStack.top() == username) {
-        std::cout << "User Already Logged In" << "\n";
+        std::cout << "Error: user already logged in" << "\n";
         return false;
     }
 
     sessionStack.push(username);
-    std::cout << "Login Successful " << username << "\n";
+    std::cout << "Success: login successful for " << username << "\n";
 
     return true;
 }
@@ -105,11 +116,11 @@ std::string AuthManager::hashPassword(const std::string &password)
 bool AuthManager::logout()
 {
     if (sessionStack.empty()) {
-        std::cout << "No Active Session" << "\n";
+        std::cout << "Error: no active session" << "\n";
         return false;
     }
 
-    std::cout << "Logout Successful " << sessionStack.top() << "\n";
+    std::cout << "Success: logout successful for " << sessionStack.top() << "\n";
     sessionStack.pop();
 
     return true;
@@ -126,7 +137,7 @@ bool AuthManager::logout()
 std::string AuthManager::getCurrentUser() const
 {
     if (sessionStack.empty()) {
-        return "No Current User";
+        return "";
     }
 
     return sessionStack.top();
