@@ -59,6 +59,10 @@ bool RelationshipManager::follow(const std::string &follower, const std::string 
 
 	followerUser->following.insert(followee);
 	followeeUser->followers.insert(follower);
+
+	// Add notification to followee's feed
+	followeeUser->addNotification(follower + " started following you!");
+
 	return true;
 }
 
@@ -91,6 +95,10 @@ bool RelationshipManager::unfollow(const std::string &follower, const std::strin
 
 	followerUser->following.erase(followee);
 	followeeUser->followers.erase(follower);
+
+	// Add notification to followee's feed
+	followeeUser->addNotification(follower + " unfollowed you.");
+
 	return true;
 }
 
@@ -170,37 +178,38 @@ std::vector<std::string> RelationshipManager::getFollowing(const std::string &us
 /*
  * Function: getMutualConnections
  * ------------------------------
- * Computes intersection of two users' following sets.
+ * Retrieves all users that have a bidirectional (mutual) relationship with the target user.
+ * A mutual connection is a user who both follows the target user and is followed by them.
  *
  * Strategy:
- * - Iterate over the smaller set for efficiency.
- * - Use hash membership checks on the larger set.
+ * - Iterate over the user's followers set (smaller or equal size in most cases).
+ * - Check membership in the user's following set.
+ * - Complexity: O(min(|followers|, |following|)) average case.
  *
  * Returns:
- *   Vector of mutual connections, or empty if either user is missing.
+ *   Vector of mutual connection usernames, or empty if user does not exist.
  */
-std::vector<std::string> RelationshipManager::getMutualConnections(const std::string &userA, const std::string &userB) const
+std::vector<std::string> RelationshipManager::getMutualConnections(const std::string &username) const
 {
-	const User *firstUser = userManager.findUser(userA);
-	const User *secondUser = userManager.findUser(userB);
-
-	if (!firstUser || !secondUser)
+	const User *user = userManager.findUser(username);
+	if (!user)
 	{
 		return {};
 	}
 
-	const std::unordered_set<std::string> &setA = firstUser->following;
-	const std::unordered_set<std::string> &setB = secondUser->following;
+	const std::unordered_set<std::string> &followers = user->followers;
+	const std::unordered_set<std::string> &following = user->following;
 
-	const std::unordered_set<std::string> &smaller = (setA.size() <= setB.size()) ? setA : setB;
-	const std::unordered_set<std::string> &larger = (setA.size() > setB.size()) ? setA : setB;
+	// Find users that both follow and are followed by the target user
+	const std::unordered_set<std::string> &smaller = (followers.size() <= following.size()) ? followers : following;
+	const std::unordered_set<std::string> &larger = (followers.size() > following.size()) ? followers : following;
 
 	std::vector<std::string> mutual;
-	for (const auto &c : smaller)
+	for (const auto &connection : smaller)
 	{
-		if (larger.count(c) > 0)
+		if (larger.count(connection) > 0)
 		{
-			mutual.push_back(c);
+			mutual.push_back(connection);
 		}
 	}
 

@@ -1,0 +1,19 @@
+signup alice p1
+signup bob p2
+login alice p1
+follow bob
+followers bob
+following alice
+logout
+login bob p2
+follow alice
+mutuals bob
+feed_next
+logout
+login alice p1
+unfollow bob
+logout
+login bob p2
+feed_next
+feed_next
+exit

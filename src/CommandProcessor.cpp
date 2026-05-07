@@ -33,6 +33,14 @@ CommandProcessor::CommandProcessor(AuthManager &authManager, RelationshipManager
     { handleFollow(args); };
     handlers["unfollow"] = [this](const std::vector<std::string> &args)
     { handleUnfollow(args); };
+    handlers["followers"] = [this](const std::vector<std::string> &args)
+    { handleFollowers(args); };
+    handlers["following"] = [this](const std::vector<std::string> &args)
+    { handleFollowing(args); };
+    handlers["mutuals"] = [this](const std::vector<std::string> &args)
+    { handleMutuals(args); };
+    handlers["feed_next"] = [this](const std::vector<std::string> &args)
+    { handleFeedNext(args); };
 }
 
 /* =========================
@@ -73,7 +81,7 @@ void CommandProcessor::handleEcho(const std::vector<std::string> &args) const
 void CommandProcessor::handleHelp(const std::vector<std::string> &args) const
 {
     (void)args; // Unused parameter
-    std::cout << "Available commands: echo, help, exit, signup, login, logout, follow, unfollow\n";
+    std::cout << "Available commands: echo, help, exit, signup, login, logout, follow, unfollow, followers, following, mutuals, feed_next\n";
 }
 
 /*
@@ -129,12 +137,7 @@ void CommandProcessor::handleSignup(const std::vector<std::string> &args)
  */
 std::string CommandProcessor::currentUser() const
 {
-    if (sessionStack.empty())
-    {
-        return "";
-    }
-
-    return sessionStack.top();
+    return authManager.getCurrentUser();
 }
 
 /*
@@ -157,7 +160,6 @@ void CommandProcessor::handleLogin(const std::vector<std::string> &args)
     const bool success = authManager.login(args[0], args[1]);
     if (success)
     {
-        sessionStack.push(args[0]);
         std::cout << "Login successful for " << args[0] << "\n";
     }
     else
@@ -178,16 +180,7 @@ void CommandProcessor::handleLogin(const std::vector<std::string> &args)
 void CommandProcessor::handleLogout(const std::vector<std::string> &args)
 {
     (void)args; // Unused parameter
-
-    if (sessionStack.empty())
-    {
-        std::cout << "No user logged in\n";
-        return;
-    }
-
-    const std::string user = sessionStack.top();
-    sessionStack.pop();
-    std::cout << "Logout successful for " << user << "\n";
+    authManager.logout();
 }
 
 /*
@@ -207,7 +200,7 @@ void CommandProcessor::handleFollow(const std::vector<std::string> &args)
         return;
     }
 
-    if (sessionStack.empty())
+    if (!authManager.isLoggedIn())
     {
         std::cout << "Error: no user logged in\n";
         return;
@@ -244,7 +237,7 @@ void CommandProcessor::handleUnfollow(const std::vector<std::string> &args)
         return;
     }
 
-    if (sessionStack.empty())
+    if (!authManager.isLoggedIn())
     {
         std::cout << "Error: no user logged in\n";
         return;
@@ -262,6 +255,159 @@ void CommandProcessor::handleUnfollow(const std::vector<std::string> &args)
     {
         std::cout << "Unfollow failed: users may not exist or not following\n";
     }
+}
+
+/*
+ * Function: handleFollowers
+ * -------------------------
+ * Retrieves and displays the list of followers for a user.
+ * If no username is provided, uses the current logged-in user.
+ *
+ * Parameters:
+ *   args - vector optionally containing [username]. If empty, uses current user.
+ */
+void CommandProcessor::handleFollowers(const std::vector<std::string> &args)
+{
+    std::string targetUser;
+
+    if (args.empty())
+    {
+        targetUser = currentUser();
+        if (targetUser.empty())
+        {
+            std::cout << "Error: no user logged in and no username provided\n";
+            return;
+        }
+    }
+    else
+    {
+        targetUser = args[0];
+    }
+
+    std::vector<std::string> followers = relationshipManager.getFollowers(targetUser);
+    if (followers.empty())
+    {
+        std::cout << targetUser << " has no followers\n";
+    }
+    else
+    {
+        std::cout << targetUser << " followers: ";
+        for (size_t i = 0; i < followers.size(); ++i)
+        {
+            if (i > 0)
+                std::cout << ", ";
+            std::cout << followers[i];
+        }
+        std::cout << "\n";
+    }
+}
+
+/*
+ * Function: handleFollowing
+ * -------------------------
+ * Retrieves and displays the list of users that a given user follows.
+ * If no username is provided, uses the current logged-in user.
+ *
+ * Parameters:
+ *   args - vector optionally containing [username]. If empty, uses current user.
+ */
+void CommandProcessor::handleFollowing(const std::vector<std::string> &args)
+{
+    std::string targetUser;
+
+    if (args.empty())
+    {
+        targetUser = currentUser();
+        if (targetUser.empty())
+        {
+            std::cout << "Error: no user logged in and no username provided\n";
+            return;
+        }
+    }
+    else
+    {
+        targetUser = args[0];
+    }
+
+    std::vector<std::string> following = relationshipManager.getFollowing(targetUser);
+    if (following.empty())
+    {
+        std::cout << targetUser << " is not following anyone\n";
+    }
+    else
+    {
+        std::cout << targetUser << " following: ";
+        for (size_t i = 0; i < following.size(); ++i)
+        {
+            if (i > 0)
+                std::cout << ", ";
+            std::cout << following[i];
+        }
+        std::cout << "\n";
+    }
+}
+
+/*
+ * Function: handleMutuals
+ * ----------------------
+ * Retrieves and displays mutual connections (bidirectional followers) for a user.
+ * A mutual connection is a user who both follows and is followed by the target user.
+ * If no username is provided, uses the current logged-in user.
+ *
+ * Parameters:
+ *   args - vector optionally containing [username]. If empty, uses current user.
+ */
+void CommandProcessor::handleMutuals(const std::vector<std::string> &args)
+{
+    std::string targetUser;
+
+    if (args.empty())
+    {
+        targetUser = currentUser();
+        if (targetUser.empty())
+        {
+            std::cout << "Error: no user logged in and no username provided\n";
+            return;
+        }
+    }
+    else
+    {
+        targetUser = args[0];
+    }
+
+    std::vector<std::string> mutuals = relationshipManager.getMutualConnections(targetUser);
+    if (mutuals.empty())
+    {
+        std::cout << targetUser << " has no mutual connections\n";
+    }
+    else
+    {
+        std::cout << targetUser << " mutuals: ";
+        for (size_t i = 0; i < mutuals.size(); ++i)
+        {
+            if (i > 0)
+                std::cout << ", ";
+            std::cout << mutuals[i];
+        }
+        std::cout << "\n";
+    }
+}
+
+/*
+ * Function: handleFeedNext
+ * ------------------------
+ * Retrieves and displays the next notification from the current user's feed queue.
+ * Requires an active login session.
+ *
+ * Parameters:
+ *   args - unused for this command.
+ */
+void CommandProcessor::handleFeedNext(const std::vector<std::string> &args)
+{
+    (void)args; // Unused parameter
+
+    std::string notification = authManager.viewNextNotification();
+    std::cout << notification << "\n";
 }
 
 /* =========================

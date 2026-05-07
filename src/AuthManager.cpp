@@ -2,6 +2,7 @@
 #include "User.h"
 #include <iostream>
 #include <functional>
+#include <sstream>
 
 /*
  * Function: AuthManager
@@ -31,11 +32,13 @@ AuthManager::AuthManager(UserManager &userManager)
 bool AuthManager::signup(const std::string &username, const std::string &password)
 {
 
-    if (username.empty() || password.empty()) {
+    if (username.empty() || password.empty())
+    {
         std::cout << "Error: username and password cannot be empty" << "\n";
         return false;
     }
-    if (!userManager.signup(username, hashPassword(password))) {
+    if (!userManager.signup(username, hashPassword(password)))
+    {
         std::cout << "Error: user already exists" << "\n";
         return false;
     }
@@ -59,24 +62,28 @@ bool AuthManager::signup(const std::string &username, const std::string &passwor
 bool AuthManager::login(const std::string &username, const std::string &password)
 {
 
-    if (username.empty() || password.empty()) {
+    if (username.empty() || password.empty())
+    {
         std::cout << "Error: username and password cannot be empty" << "\n";
         return false;
     }
-    
-    const User* user = userManager.findUser(username);
 
-    if (!user) {
+    const User *user = userManager.findUser(username);
+
+    if (!user)
+    {
         std::cout << "Error: user does not exist" << "\n";
         return false;
     }
 
-    if (user->passwordHash != hashPassword(password)) {
+    if (user->passwordHash != hashPassword(password))
+    {
         std::cout << "Error: incorrect password" << "\n";
         return false;
     }
 
-    if (!sessionStack.empty() && sessionStack.top() == username) {
+    if (!sessionStack.empty() && sessionStack.top() == username)
+    {
         std::cout << "Error: user already logged in" << "\n";
         return false;
     }
@@ -101,7 +108,13 @@ bool AuthManager::login(const std::string &username, const std::string &password
  */
 std::string AuthManager::hashPassword(const std::string &password)
 {
-    return std::to_string(std::hash<std::string>{}(password));
+    // Combine password with a constant salt for hashing
+    std::hash<std::string> hasher;
+    std::stringstream ss;
+    // Combine password with a salt constant and convert to hex
+    size_t hash_val = hasher(password + std::string("SOCIAL_MEDIA_APP_SALT"));
+    ss << std::hex << hash_val;
+    return ss.str();
 }
 
 /*
@@ -115,7 +128,8 @@ std::string AuthManager::hashPassword(const std::string &password)
  */
 bool AuthManager::logout()
 {
-    if (sessionStack.empty()) {
+    if (sessionStack.empty())
+    {
         std::cout << "Error: no active session" << "\n";
         return false;
     }
@@ -136,7 +150,8 @@ bool AuthManager::logout()
  */
 std::string AuthManager::getCurrentUser() const
 {
-    if (sessionStack.empty()) {
+    if (sessionStack.empty())
+    {
         return "";
     }
 
@@ -154,4 +169,26 @@ std::string AuthManager::getCurrentUser() const
 bool AuthManager::isLoggedIn() const
 {
     return !sessionStack.empty();
+}
+
+const UserManager &AuthManager::getUserManager() const
+{
+    return userManager;
+}
+
+std::string AuthManager::viewNextNotification()
+{
+    if (sessionStack.empty())
+    {
+        return "Error: no user logged in";
+    }
+
+    const std::string username = sessionStack.top();
+    User *user = userManager.findUser(username);
+    if (!user)
+    {
+        return "Error: user not found";
+    }
+
+    return user->viewNotification();
 }

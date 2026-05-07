@@ -77,10 +77,11 @@ public:
     /*
      * Function: getMutualConnections
      * ------------------------------
-     * Compute the intersection of two users' following sets.
-     * Returns an empty vector if either user does not exist.
+     * Retrieve all users that have a bidirectional (mutual) relationship with the given user.
+     * A mutual connection is a user who both follows the target user and is followed by them.
+     * Returns an empty vector if the user does not exist.
      */
-    std::vector<std::string> getMutualConnections(const std::string &userA, const std::string &userB) const;
+    std::vector<std::string> getMutualConnections(const std::string &username) const;
 
 private:
     UserManager &userManager;

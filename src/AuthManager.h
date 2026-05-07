@@ -104,6 +104,25 @@ public:
      */
     bool isLoggedIn() const;
 
+    /*
+     * Function: getUserManager (internal use)
+     * ----------------------------------------
+     * Provides access to the UserManager for feed operations.
+     * Internal use only.
+     */
+    const UserManager &getUserManager() const;
+
+    /*
+     * Function: viewNextNotification
+     * --------------------------------
+     * For the currently logged-in user, retrieves and removes the next notification
+     * from their feed queue.
+     *
+     * Returns:
+     *   The next notification string, or an error message if no user is logged in.
+     */
+    std::string viewNextNotification();
+
 private:
     UserManager &userManager;
     std::stack<std::string> sessionStack;

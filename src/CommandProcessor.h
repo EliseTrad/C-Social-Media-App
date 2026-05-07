@@ -86,9 +86,6 @@ private:
     // Dispatch map used to avoid if-else chains and keep command lookup fast.
     std::unordered_map<std::string, std::function<void(const std::vector<std::string> &)>> handlers;
 
-    // Session stack that stores the current user on login and removes it on logout.
-    std::stack<std::string> sessionStack;
-
     // Prints command arguments exactly as entered.
     void handleEcho(const std::vector<std::string> &args) const;
 
@@ -113,7 +110,19 @@ private:
     // Calls RelationshipManager to remove a follow relationship with another user.
     void handleUnfollow(const std::vector<std::string> &args);
 
-    // Returns the current session user from the top of the stack.
+    // Calls RelationshipManager to retrieve a user's followers.
+    void handleFollowers(const std::vector<std::string> &args);
+
+    // Calls RelationshipManager to retrieve a user's following list.
+    void handleFollowing(const std::vector<std::string> &args);
+
+    // Calls RelationshipManager to retrieve mutual connections (bidirectional followers).
+    void handleMutuals(const std::vector<std::string> &args);
+
+    // Calls User's feed queue to retrieve and display the next notification.
+    void handleFeedNext(const std::vector<std::string> &args);
+
+    // Returns the current session user from AuthManager.
     // Returns:
     // - The active user name, or an empty string when no session exists.
     std::string currentUser() const;

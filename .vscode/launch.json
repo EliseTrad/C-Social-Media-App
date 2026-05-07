@@ -1,0 +1,19 @@
+{
+    "version": "0.2.0",
+    "configurations": [
+        {
+            "name": "C++ Launch (Build and Run)",
+            "type": "cppdbg",
+            "request": "launch",
+            "program": "${workspaceFolder}/src/main.exe",
+            "args": [],
+            "stopAtEntry": false,
+            "cwd": "${workspaceFolder}",
+            "environment": [],
+            "externalConsole": false,
+            "preLaunchTask": "C/C++: Build Social Media App",
+            "MIMode": "gdb",
+            "miDebuggerPath": "C:/Users/hp/Downloads/winlibs-x86_64-posix-seh-gcc-14.2.0-llvm-19.1.7-mingw-w64ucrt-12.0.0-r3/mingw64/bin/gdb.exe"
+        }
+    ]
+}
