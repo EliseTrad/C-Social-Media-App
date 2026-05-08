@@ -102,7 +102,14 @@ void CommandProcessor::handleExit(const std::vector<std::string> &args) const
 /*
  * Function: handleSignup
  * ----------------------
- * Calls AuthManager to create a new account with the provided credentials.
+ * Parses signup command and creates a new account with the provided credentials.
+ * Enforces session state rule: prevents signup while a user is already logged in.
+ * Delegates credential validation to AuthManager, which checks:
+ *   - Username contains only letters (a–z, A–Z)
+ *   - Username does not exceed 8 characters
+ *   - Password is not empty
+ *   - Username is not already registered
+ * Maps SignupResult enum values to specific user-facing messages.
  *
  * Parameters:
  *   args - vector expected to contain [username, password].
@@ -115,14 +122,31 @@ void CommandProcessor::handleSignup(const std::vector<std::string> &args)
         return;
     }
 
-    const bool success = authManager.signup(args[0], args[1]);
-    if (success)
+    if (authManager.isLoggedIn())
     {
-        std::cout << "Signup successful for " << args[0] << "\n";
+        std::cout << "Signup failed: Please log out before creating a new account.\n";
+        return;
     }
-    else
+
+    const AuthManager::SignupResult result = authManager.signup(args[0], args[1]);
+    switch (result)
     {
+    case AuthManager::SignupResult::Success:
+        std::cout << "Signup successful for " << args[0] << "\n";
+        break;
+    case AuthManager::SignupResult::InvalidUsernameCharacters:
+        std::cout << "Invalid username: only letters allowed\n";
+        break;
+    case AuthManager::SignupResult::UsernameTooLong:
+        std::cout << "Invalid username: maximum length exceeded\n";
+        break;
+    case AuthManager::SignupResult::EmptyPassword:
+        std::cout << "Invalid password: must not be empty\n";
+        break;
+    case AuthManager::SignupResult::UserAlreadyExists:
+    default:
         std::cout << "Signup failed: user may already exist\n";
+        break;
     }
 }
 
@@ -143,8 +167,15 @@ std::string CommandProcessor::currentUser() const
 /*
  * Function: handleLogin
  * ---------------------
- * Calls AuthManager to validate credentials. If successful, pushes the username
- * onto the session stack to model an active login.
+ * Parses login command and authenticates user with provided credentials.
+ * Enforces session state rule: prevents login as a different user when
+ * a user is already logged in. Allows re-login as the same user.
+ * Delegates credential validation to AuthManager, which checks:
+ *   - Username format (letters only, max 8 chars)
+ *   - Password hash verification
+ *   - Existing session state
+ * Maps LoginResult enum values to specific user-facing messages including
+ * validation failures and session conflicts.
  *
  * Parameters:
  *   args - vector expected to contain [username, password].
@@ -157,14 +188,35 @@ void CommandProcessor::handleLogin(const std::vector<std::string> &args)
         return;
     }
 
-    const bool success = authManager.login(args[0], args[1]);
-    if (success)
+    if (authManager.isLoggedIn() && authManager.getCurrentUser() != args[0])
     {
-        std::cout << "Login successful for " << args[0] << "\n";
+        std::cout << "Login failed: Please log out before logging in to another account.\n";
+        return;
     }
-    else
+
+    const AuthManager::LoginResult result = authManager.login(args[0], args[1]);
+    switch (result)
     {
+    case AuthManager::LoginResult::Success:
+        std::cout << "Login successful for " << args[0] << "\n";
+        break;
+    case AuthManager::LoginResult::AlreadyLoggedIn:
+        std::cout << "Login failed: user already logged in\n";
+        break;
+    case AuthManager::LoginResult::EmptyInput:
+        std::cout << "Usage: login <username> <password>\n";
+        break;
+    case AuthManager::LoginResult::InvalidUsernameCharacters:
+        std::cout << "Invalid username: only letters allowed\n";
+        break;
+    case AuthManager::LoginResult::UsernameTooLong:
+        std::cout << "Invalid username: maximum length exceeded\n";
+        break;
+    case AuthManager::LoginResult::InvalidCredentials:
+    case AuthManager::LoginResult::NoSuchUser:
+    default:
         std::cout << "Login failed: invalid credentials\n";
+        break;
     }
 }
 
@@ -196,8 +248,13 @@ void CommandProcessor::handleLogout(const std::vector<std::string> &args)
 /*
  * Function: handleFollow
  * ----------------------
- * Calls RelationshipManager to establish a follow relationship with another user.
- * The current session user is the follower.
+ * Parses follow command and establishes a directed follow relationship.
+ * Validates session state and prevents self-follow operations.
+ * Delegates to RelationshipManager, which returns specific result codes for:
+ *   - User existence (returns UserNotFound if user missing)
+ *   - Already following status (returns AlreadyFollowing if duplicate)
+ *   - Self-follow detection (returns SelfOperation if same user)
+ * Maps FollowResult enum values to clear, specific user-facing messages.
  *
  * Parameters:
  *   args - vector expected to contain [followee_username].
@@ -219,22 +276,41 @@ void CommandProcessor::handleFollow(const std::vector<std::string> &args)
     const std::string follower = currentUser();
     const std::string followee = args[0];
 
-    const bool success = relationshipManager.follow(follower, followee);
-    if (success)
+    if (follower == followee)
     {
-        std::cout << follower << " is now following " << followee << "\n";
+        std::cout << "You cannot follow yourself\n";
+        return;
     }
-    else
+
+    const RelationshipManager::FollowResult result = relationshipManager.follow(follower, followee);
+    switch (result)
     {
-        std::cout << "Follow failed: users may not exist or already following\n";
+    case RelationshipManager::FollowResult::Success:
+        std::cout << follower << " is now following " << followee << "\n";
+        break;
+    case RelationshipManager::FollowResult::SelfOperation:
+        std::cout << "You cannot follow yourself\n";
+        break;
+    case RelationshipManager::FollowResult::UserNotFound:
+        std::cout << "Follow failed: user does not exist\n";
+        break;
+    case RelationshipManager::FollowResult::AlreadyFollowing:
+    default:
+        std::cout << "Follow failed: already following user\n";
+        break;
     }
 }
 
 /*
  * Function: handleUnfollow
  * ------------------------
- * Calls RelationshipManager to remove a follow relationship with another user.
- * The current session user is the follower.
+ * Parses unfollow command and removes a directed follow relationship.
+ * Validates session state and prevents self-unfollow operations.
+ * Delegates to RelationshipManager, which returns specific result codes for:
+ *   - User existence (returns UserNotFound if user missing)
+ *   - Following status (returns NotFollowing if no relationship exists)
+ *   - Self-unfollow detection (returns SelfOperation if same user)
+ * Maps UnfollowResult enum values to clear, specific user-facing messages.
  *
  * Parameters:
  *   args - vector expected to contain [followee_username].
@@ -256,14 +332,28 @@ void CommandProcessor::handleUnfollow(const std::vector<std::string> &args)
     const std::string follower = currentUser();
     const std::string followee = args[0];
 
-    const bool success = relationshipManager.unfollow(follower, followee);
-    if (success)
+    if (follower == followee)
     {
-        std::cout << follower << " is no longer following " << followee << "\n";
+        std::cout << "You cannot unfollow yourself\n";
+        return;
     }
-    else
+
+    const RelationshipManager::UnfollowResult result = relationshipManager.unfollow(follower, followee);
+    switch (result)
     {
-        std::cout << "Unfollow failed: users may not exist or not following\n";
+    case RelationshipManager::UnfollowResult::Success:
+        std::cout << follower << " is no longer following " << followee << "\n";
+        break;
+    case RelationshipManager::UnfollowResult::SelfOperation:
+        std::cout << "You cannot unfollow yourself\n";
+        break;
+    case RelationshipManager::UnfollowResult::UserNotFound:
+        std::cout << "Unfollow failed: user does not exist\n";
+        break;
+    case RelationshipManager::UnfollowResult::NotFollowing:
+    default:
+        std::cout << "Unfollow failed: not following user\n";
+        break;
     }
 }
 

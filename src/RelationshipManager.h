@@ -16,6 +16,22 @@
 class RelationshipManager
 {
 public:
+    enum class FollowResult
+    {
+        Success,
+        SelfOperation,
+        UserNotFound,
+        AlreadyFollowing
+    };
+
+    enum class UnfollowResult
+    {
+        Success,
+        SelfOperation,
+        UserNotFound,
+        NotFollowing
+    };
+
     /*
      * Function: RelationshipManager
      * -----------------------------
@@ -30,23 +46,32 @@ public:
      * Function: follow
      * ----------------
      * Establish a directed follow relationship from follower -> followee.
-     * Validation includes self-follow prevention, duplicate prevention,
-     * and missing-user checks.
+     * Validation includes self-follow prevention, user existence checks, and
+     * duplicate prevention.
      *
      * Returns:
-     *   true on success, false otherwise.
+     *   A FollowResult enumerator describing the outcome:
+     *     - Success: relationship created and followers/following sets updated
+     *     - SelfOperation: follower and followee are the same user
+     *     - UserNotFound: at least one user does not exist in the system
+     *     - AlreadyFollowing: follower already follows the followee
      */
-    bool follow(const std::string &follower, const std::string &followee);
+    FollowResult follow(const std::string &follower, const std::string &followee);
 
     /*
      * Function: unfollow
      * ------------------
      * Remove an existing directed follow relationship from follower -> followee.
+     * Validation includes self-unfollow prevention and user existence checks.
      *
      * Returns:
-     *   true when a relationship existed and was removed, false otherwise.
+     *   An UnfollowResult enumerator describing the outcome:
+     *     - Success: relationship removed and followers/following sets updated
+     *     - SelfOperation: follower and followee are the same user
+     *     - UserNotFound: at least one user does not exist in the system
+     *     - NotFollowing: no follow relationship exists between the users
      */
-    bool unfollow(const std::string &follower, const std::string &followee);
+    UnfollowResult unfollow(const std::string &follower, const std::string &followee);
 
     /*
      * Function: isFollowing

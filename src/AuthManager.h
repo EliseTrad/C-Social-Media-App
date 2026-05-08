@@ -1,5 +1,6 @@
 #pragma once
 
+#include <cstddef>
 #include <string>
 #include <stack>
 #include "UserManager.h"
@@ -18,6 +19,8 @@
 class AuthManager
 {
 public:
+    static constexpr std::size_t kMaxUsernameLength = 8;
+
     /*
      * Function: AuthManager
      * ---------------------
@@ -32,6 +35,10 @@ public:
      * Function: signup
      * ----------------
      * Registers a new user with the given username and password.
+     * Validates username and password according to rules:
+     *   - Username must contain only letters (a–z, A–Z)
+     *   - Username maximum length: 8 characters
+     *   - Password must not be empty
      * The password is hashed before being stored.
      *
      * Parameters:
@@ -39,25 +46,58 @@ public:
      *   password - plaintext password
      *
      * Returns:
-     *   true if signup succeeds, false if the user already exists
-     *   or input is invalid
+     *   A SignupResult enumerator describing the outcome:
+     *     - Success: user created and stored
+     *     - EmptyPassword: password was empty
+     *     - InvalidUsernameCharacters: username contains non-letter characters
+     *     - UsernameTooLong: username exceeds maximum length of 8
+     *     - UserAlreadyExists: username already registered
      */
-    bool signup(const std::string &username, const std::string &password);
+    enum class SignupResult
+    {
+        Success,
+        EmptyPassword,
+        InvalidUsernameCharacters,
+        UsernameTooLong,
+        UserAlreadyExists
+    };
+
+    SignupResult signup(const std::string &username, const std::string &password);
 
     /*
      * Function: login
      * ---------------
-     * Authenticates a user using their credentials and establishes
-     * a session if successful.
+     * Authenticates a user and establishes a session if successful.
+     * Validates username format according to same rules as signup:
+     *   - Username must contain only letters (a–z, A–Z)
+     *   - Username maximum length: 8 characters
      *
      * Parameters:
      *   username - user's identifier
      *   password - plaintext password to verify
      *
      * Returns:
-     *   true if login is successful, false otherwise
+     *   A LoginResult enumerator describing the outcome:
+     *     - Success: credentials valid and the user was pushed onto the session stack
+     *     - EmptyInput: username or password was empty
+     *     - InvalidUsernameCharacters: username contains non-letter characters
+     *     - UsernameTooLong: username exceeds maximum length of 8
+     *     - NoSuchUser: the username was not found in the user store
+     *     - InvalidCredentials: password did not match the stored hash
+     *     - AlreadyLoggedIn: the same user is already the active session (top of stack)
      */
-    bool login(const std::string &username, const std::string &password);
+    enum class LoginResult
+    {
+        Success,
+        EmptyInput,
+        InvalidUsernameCharacters,
+        UsernameTooLong,
+        NoSuchUser,
+        InvalidCredentials,
+        AlreadyLoggedIn
+    };
+
+    LoginResult login(const std::string &username, const std::string &password);
 
     /*
      * Function: hashPassword

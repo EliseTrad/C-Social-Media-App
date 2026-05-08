@@ -1,7 +1,29 @@
 #include "AuthManager.h"
 #include "User.h"
+#include <cctype>
 #include <functional>
 #include <sstream>
+
+namespace
+{
+    bool hasLettersOnly(const std::string &value)
+    {
+        if (value.empty())
+        {
+            return false;
+        }
+
+        for (const char ch : value)
+        {
+            if (!std::isalpha(static_cast<unsigned char>(ch)))
+            {
+                return false;
+            }
+        }
+
+        return true;
+    }
+} // namespace
 
 /*
  * Function: AuthManager
@@ -19,6 +41,7 @@ AuthManager::AuthManager(UserManager &userManager)
  * Function: signup
  * ----------------
  * Attempts to register a new user by delegating to UserManager.
+ * Validates username format (letters only, max 8 chars) and password non-emptiness.
  * The password is hashed before being stored.
  *
  * Parameters:
@@ -26,63 +49,97 @@ AuthManager::AuthManager(UserManager &userManager)
  *   password - plaintext password
  *
  * Returns:
- *   true if signup is successful, false if the user already exists
+ *   An AuthManager::SignupResult value indicating the specific outcome:
+ *     - Success: user created and stored
+ *     - EmptyPassword: password validation failed
+ *     - InvalidUsernameCharacters: username contains non-letter characters
+ *     - UsernameTooLong: username exceeds 8 character limit
+ *     - UserAlreadyExists: user already registered with that username
  */
-bool AuthManager::signup(const std::string &username, const std::string &password)
+AuthManager::SignupResult AuthManager::signup(const std::string &username, const std::string &password)
 {
 
-    if (username.empty() || password.empty())
+    if (password.empty())
     {
-        return false;
+        return SignupResult::EmptyPassword;
     }
+
+    if (!hasLettersOnly(username))
+    {
+        return SignupResult::InvalidUsernameCharacters;
+    }
+
+    if (username.size() > kMaxUsernameLength)
+    {
+        return SignupResult::UsernameTooLong;
+    }
+
     if (!userManager.signup(username, hashPassword(password)))
     {
-        return false;
+        return SignupResult::UserAlreadyExists;
     }
-    return true;
+    return SignupResult::Success;
 }
 
 /*
  * Function: login
  * ---------------
- * Authenticates a user by verifying their credentials. If successful,
- * the username is pushed onto the session stack to establish an active session.
+ * Authenticates a user by verifying their credentials and validating username format.
+ * If successful, the username is pushed onto the session stack to establish an active session.
+ * Username validation matches signup rules: letters only, max 8 characters.
  *
  * Parameters:
  *   username - user's identifier
  *   password - plaintext password to verify
  *
  * Returns:
- *   true if login is successful, false otherwise
+ *   An AuthManager::LoginResult value describing the specific outcome:
+ *     - Success: credentials valid and session established
+ *     - EmptyInput: username or password empty
+ *     - InvalidUsernameCharacters: username contains non-letter characters
+ *     - UsernameTooLong: username exceeds 8 character limit
+ *     - NoSuchUser: username not found
+ *     - InvalidCredentials: password hash mismatch
+ *     - AlreadyLoggedIn: same user already active in session
  */
-bool AuthManager::login(const std::string &username, const std::string &password)
+AuthManager::LoginResult AuthManager::login(const std::string &username, const std::string &password)
 {
 
     if (username.empty() || password.empty())
     {
-        return false;
+        return LoginResult::EmptyInput;
+    }
+
+    if (!hasLettersOnly(username))
+    {
+        return LoginResult::InvalidUsernameCharacters;
+    }
+
+    if (username.size() > kMaxUsernameLength)
+    {
+        return LoginResult::UsernameTooLong;
     }
 
     const User *user = userManager.findUser(username);
 
     if (!user)
     {
-        return false;
+        return LoginResult::NoSuchUser;
     }
 
     if (user->passwordHash != hashPassword(password))
     {
-        return false;
+        return LoginResult::InvalidCredentials;
     }
 
     if (!sessionStack.empty() && sessionStack.top() == username)
     {
-        return false;
+        return LoginResult::AlreadyLoggedIn;
     }
 
     sessionStack.push(username);
 
-    return true;
+    return LoginResult::Success;
 }
 
 /*
@@ -135,7 +192,7 @@ bool AuthManager::logout()
  * Retrieves the username of the currently active session from the stack.
  *
  * Returns:
- *   the username of the active user, or a message if no user is logged in
+ *   the username of the active user, or an empty string if no user is logged in
  */
 std::string AuthManager::getCurrentUser() const
 {

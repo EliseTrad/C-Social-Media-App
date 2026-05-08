@@ -27,19 +27,22 @@ RelationshipManager::RelationshipManager(UserManager &userManager) : userManager
  * Creates a directed edge follower -> followee.
  *
  * Validation:
- * - Prevent self-follow.
- * - Require both users to exist.
- * - Prevent duplicate follows.
+ * - Prevent self-follow (returns SelfOperation).
+ * - Require both users to exist (returns UserNotFound if missing).
+ * - Prevent duplicate follows (returns AlreadyFollowing if exists).
+ *
+ * On success, updates both followers and following sets bidirectionally,
+ * and adds a notification to the followee's feed.
  *
  * Returns:
- *   true on success, false otherwise.
+ *   A FollowResult enumerator indicating success or specific failure reason.
  */
-bool RelationshipManager::follow(const std::string &follower, const std::string &followee)
+RelationshipManager::FollowResult RelationshipManager::follow(const std::string &follower, const std::string &followee)
 {
 	// Prevent self-follow
 	if (follower == followee)
 	{
-		return false;
+		return FollowResult::SelfOperation;
 	}
 
 	User *followerUser = userManager.findUser(follower);
@@ -48,13 +51,13 @@ bool RelationshipManager::follow(const std::string &follower, const std::string 
 	// Both users must exist
 	if (!followerUser || !followeeUser)
 	{
-		return false;
+		return FollowResult::UserNotFound;
 	}
 
 	// Prevent duplicate follows
 	if (followerUser->following.count(followee) > 0)
 	{
-		return false;
+		return FollowResult::AlreadyFollowing;
 	}
 
 	followerUser->following.insert(followee);
@@ -63,7 +66,7 @@ bool RelationshipManager::follow(const std::string &follower, const std::string 
 	// Add notification to followee's feed
 	followeeUser->addNotification(follower + " started following you!");
 
-	return true;
+	return FollowResult::Success;
 }
 
 /*
@@ -72,25 +75,35 @@ bool RelationshipManager::follow(const std::string &follower, const std::string 
  * Removes a directed edge follower -> followee.
  *
  * Validation:
- * - Require both users to exist.
- * - Require the follow relationship to be present.
+ * - Prevent self-unfollow (returns SelfOperation).
+ * - Require both users to exist (returns UserNotFound if missing).
+ * - Require the follow relationship to be present (returns NotFollowing if absent).
+ *
+ * On success, removes from both followers and following sets bidirectionally,
+ * and adds a notification to the unfollowee's feed.
  *
  * Returns:
- *   true on success, false otherwise.
+ *   An UnfollowResult enumerator indicating success or specific failure reason.
  */
-bool RelationshipManager::unfollow(const std::string &follower, const std::string &followee)
+RelationshipManager::UnfollowResult RelationshipManager::unfollow(const std::string &follower, const std::string &followee)
 {
+	// Prevent self-unfollow
+	if (follower == followee)
+	{
+		return UnfollowResult::SelfOperation;
+	}
+
 	User *followerUser = userManager.findUser(follower);
 	User *followeeUser = userManager.findUser(followee);
 
 	if (!followerUser || !followeeUser)
 	{
-		return false;
+		return UnfollowResult::UserNotFound;
 	}
 
 	if (followerUser->following.count(followee) == 0)
 	{
-		return false;
+		return UnfollowResult::NotFollowing;
 	}
 
 	followerUser->following.erase(followee);
@@ -99,7 +112,7 @@ bool RelationshipManager::unfollow(const std::string &follower, const std::strin
 	// Add notification to followee's feed
 	followeeUser->addNotification(follower + " unfollowed you.");
 
-	return true;
+	return UnfollowResult::Success;
 }
 
 /*
