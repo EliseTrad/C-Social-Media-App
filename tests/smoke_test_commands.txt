@@ -1,19 +1,41 @@
-signup alice p1
-signup bob p2
-login alice p1
+signup alice validpass
+signup alice validpass
+signup bob pass2
+login alice validpass
+signup charlie pass3
+login bob pass2
+login alice validpass
+logout
+login alice wrongpass
+login ghost pass
+login alice validpass
 follow bob
-followers bob
+follow ghost
+follow alice
+follow bob
+followers alice
 following alice
 logout
-login bob p2
+login bob pass2
 follow alice
+mutuals alice
 mutuals bob
 feed_next
-logout
-login alice p1
+feed_next
+feed_next
+unfollow alice
+unfollow charlie
 unfollow bob
 logout
-login bob p2
-feed_next
-feed_next
+login alice validpass
+follow bob
+logout
+follow bob
+login alice validpass
+signup alice
+notacommand arg1 arg2
+help
+echo hello world this is a test
+logout
+followers alice
 exit

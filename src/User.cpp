@@ -1,3 +1,4 @@
+
 #include "User.h"
 
 /*
@@ -5,7 +6,7 @@
  * --------------
  * Initialize a user record with the supplied username and password hash.
  */
-User::User(string u, string p)
+User::User(std::string u, std::string p)
 {
     username = u;
 
@@ -17,7 +18,7 @@ User::User(string u, string p)
  * -------------------------
  * Append a notification to the end of the FIFO queue.
  */
-void User::addNotification(const string &message)
+void User::addNotification(const std::string &message)
 {
     notifications.push(message);
 }
@@ -27,14 +28,14 @@ void User::addNotification(const string &message)
  * --------------------------
  * Remove and return the next queued notification.
  */
-string User::viewNotification()
+std::string User::viewNotification()
 {
     if (notifications.empty())
     {
         return "No notifications";
     }
 
-    string msg = notifications.front();
+    std::string msg = notifications.front();
 
     notifications.pop();
 
