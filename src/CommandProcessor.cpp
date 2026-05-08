@@ -180,7 +180,17 @@ void CommandProcessor::handleLogin(const std::vector<std::string> &args)
 void CommandProcessor::handleLogout(const std::vector<std::string> &args)
 {
     (void)args; // Unused parameter
-    authManager.logout();
+
+    const std::string loggedInUser = currentUser();
+    const bool success = authManager.logout();
+    if (success)
+    {
+        std::cout << "Success: logout successful for " << loggedInUser << "\n";
+    }
+    else
+    {
+        std::cout << "Error: no active session" << "\n";
+    }
 }
 
 /*

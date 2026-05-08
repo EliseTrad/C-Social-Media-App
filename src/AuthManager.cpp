@@ -1,6 +1,5 @@
 #include "AuthManager.h"
 #include "User.h"
-#include <iostream>
 #include <functional>
 #include <sstream>
 
@@ -34,15 +33,12 @@ bool AuthManager::signup(const std::string &username, const std::string &passwor
 
     if (username.empty() || password.empty())
     {
-        std::cout << "Error: username and password cannot be empty" << "\n";
         return false;
     }
     if (!userManager.signup(username, hashPassword(password)))
     {
-        std::cout << "Error: user already exists" << "\n";
         return false;
     }
-    std::cout << "Success: signup successful" << "\n";
     return true;
 }
 
@@ -64,7 +60,6 @@ bool AuthManager::login(const std::string &username, const std::string &password
 
     if (username.empty() || password.empty())
     {
-        std::cout << "Error: username and password cannot be empty" << "\n";
         return false;
     }
 
@@ -72,24 +67,20 @@ bool AuthManager::login(const std::string &username, const std::string &password
 
     if (!user)
     {
-        std::cout << "Error: user does not exist" << "\n";
         return false;
     }
 
     if (user->passwordHash != hashPassword(password))
     {
-        std::cout << "Error: incorrect password" << "\n";
         return false;
     }
 
     if (!sessionStack.empty() && sessionStack.top() == username)
     {
-        std::cout << "Error: user already logged in" << "\n";
         return false;
     }
 
     sessionStack.push(username);
-    std::cout << "Success: login successful for " << username << "\n";
 
     return true;
 }
@@ -130,11 +121,9 @@ bool AuthManager::logout()
 {
     if (sessionStack.empty())
     {
-        std::cout << "Error: no active session" << "\n";
         return false;
     }
 
-    std::cout << "Success: logout successful for " << sessionStack.top() << "\n";
     sessionStack.pop();
 
     return true;
